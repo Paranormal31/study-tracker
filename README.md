@@ -28,3 +28,8 @@ cd backend
 npm install
 npm run dev
 ```
+
+## 🌍 Live Demo
+
+Frontend: https://study-tracker.vercel.app  
+Backend: https://study-tracker-7jn5.onrender.com
