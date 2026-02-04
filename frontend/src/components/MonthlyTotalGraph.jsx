@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import { getMonthlyTotalGraph } from "../api/api";
 
@@ -22,8 +22,6 @@ ChartJS.register(
 );
 
 function MonthlyTotalGraph() {
-  const [graph, setGraph] = useState(null);
-
   useEffect(() => {
     getMonthlyTotalGraph().then((res) => setGraph(res.data));
   }, []);

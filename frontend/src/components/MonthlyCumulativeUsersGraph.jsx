@@ -24,11 +24,10 @@ ChartJS.register(
 const COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#a855f7", "#eab308"];
 
 function MonthlyCumulativeUsersGraph() {
+  const [loading, setLoading] = useState(true);
   const [graph, setGraph] = useState(null);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [loading, setLoading] = useState(false);
-
   // 🔹 Fetch graph data
   const fetchGraph = () => {
     setLoading(true);

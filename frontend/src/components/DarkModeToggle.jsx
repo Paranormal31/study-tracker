@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 function DarkModeToggle() {
   const [dark, setDark] = useState(false);
-
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia(

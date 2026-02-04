@@ -4,25 +4,57 @@ const User = require("../models/User");
 // Single user graph (if still used elsewhere)
 const getStudyGraph = async (req, res) => {
   try {
-    const { userId } = req.query;
+    if (!req.user.group) {
+      return res.status(403).json({ message: "User has no group" });
+    }
 
-    const logs = await StudyLog.find({ user: userId }).lean();
+    // Fetch all users in the same group
+    const users = await User.find({ group: req.user.group }).select("_id name");
 
-    const data = logs.map((log) => ({
-      date: log.date.toISOString().split("T")[0],
-      totalMinutes: log.minutes,
-    }));
+    const userIds = users.map((u) => u._id);
 
-    res.json(data);
+    // Fetch logs for all group users
+    const logs = await StudyLog.aggregate([
+      {
+        $match: {
+          user: { $in: userIds },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            user: "$user",
+            date: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$date",
+                timezone: "Asia/Kolkata",
+              },
+            },
+          },
+          totalMinutes: { $sum: "$minutes" },
+        },
+      },
+    ]);
+
+    res.json({
+      users,
+      logs,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch study graph" });
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch group study graph" });
   }
 };
 
 // All users comparison graph
 const getAllUsersStudyGraph = async (req, res) => {
   try {
-    const users = await User.find().lean();
+    if (!req.user.group) {
+      return res.status(403).json({ message: "User has no group" });
+    }
+
+    const users = await User.find({ group: req.user.group }).lean();
 
     const logs = await StudyLog.aggregate([
       {
@@ -56,7 +88,7 @@ const getAllUsersStudyGraph = async (req, res) => {
 
       return {
         userId: u._id,
-        name: u.name,
+        name: u.username,
         data,
       };
     });
@@ -83,10 +115,19 @@ const getMonthlyCumulativePerUserGraph = async (req, res) => {
       ? new Date(to)
       : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+    // Cap endDate to today so we don't show future dates
+    if (endDate > now) {
+      endDate.setTime(now.getTime());
+    }
+
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
 
-    const users = await User.find().lean();
+    if (!req.user.group) {
+      return res.status(403).json({ message: "User has no group" });
+    }
+
+    const users = await User.find({ group: req.user.group }).lean();
 
     const logs = await StudyLog.aggregate([
       {
@@ -137,7 +178,7 @@ const getMonthlyCumulativePerUserGraph = async (req, res) => {
 
       return {
         userId: u._id,
-        name: u.name,
+        name: u.username,
         data,
       };
     });

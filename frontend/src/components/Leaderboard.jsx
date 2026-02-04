@@ -4,8 +4,7 @@ import { deleteUser } from "../api/api";
 
 function Leaderboard() {
   const [data, setData] = useState([]);
-  const [type, setType] = useState("weekly");
-
+  const [type, setType] = useState("daily");
   useEffect(() => {
     getLeaderboard(type).then((res) => setData(res.data));
   }, [type]);
@@ -32,7 +31,7 @@ function Leaderboard() {
             className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded"
           >
             <span className="font-medium">
-              #{i + 1} {u.name}
+              #{i + 1} {u.username}
             </span>
 
             <div className="flex items-center gap-3">
@@ -42,7 +41,7 @@ function Leaderboard() {
 
               <button
                 onClick={async () => {
-                  if (!confirm(`Delete ${u.name}? This cannot be undone.`))
+                  if (!confirm(`Delete ${u.username}? This cannot be undone.`))
                     return;
                   await deleteUser(u.userId);
                   window.location.reload();

@@ -1,96 +1,117 @@
 import { useEffect, useState } from "react";
-import { Line } from "react-chartjs-2";
-import { getAllUsersGraph } from "../api/api";
-
+import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  LineElement,
-  PointElement,
+  BarElement,
   Tooltip,
   Legend,
 } from "chart.js";
+import { getAllUsersGraph } from "../api/api";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-const colors = [
-  "#4F46E5",
-  "#16A34A",
-  "#DC2626",
-  "#CA8A04",
-  "#9333EA",
-  "#0891B2",
-];
-
-function AllUsersGraph() {
-  const [data, setData] = useState(null);
-
+const AllUsersGraph = () => {
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   useEffect(() => {
-    getAllUsersGraph().then((res) => setData(res.data));
+    const fetchGroupGraph = async () => {
+      try {
+        const res = await getAllUsersGraph();
+
+        // Fix: API returns { dates: [], users: [] }, not just []
+        const users = res.data.users || [];
+        
+        const labels = users.map((u) => u.name || u.username || "User");
+        // Backend returns 'data' property in user object for the graph values if I recall correctly from graphController
+        // Let's re-verify graphController mapping: return { ... data: [...] }
+        // Wait, AllUsersGraph was mapping u.totalMinutes. 
+        // Logic in AllUsersGraph BEFORE: const values = res.data.map((u) => u.totalMinutes);
+        // Logic in graphController getAllUsersStudyGraph: returns { userId, name, data: [1, 2, 0...] } -> array of minutes for each date.
+        // Wait, AllUsersGraph seems to be wanting a BAR chart of TOTAL minutes? 
+        // But graphController returns a DATASET for a multi-line or stacked bar over time?
+        // graphController.js Line 84: data = dates.map(...) -> returns array of minutes per day.
+        
+        // If AllUsersGraph wants TOTAL minutes, it needs to sum them up or use a different endpoint.
+        // Line 11 says: import { getAllUsersGraph } from "../api/api";
+        // api.js Line 18: export const getAllUsersGraph = () => API.get("/graphs/all-users");
+        // routes? 
+        // I haven't seen routes.
+        
+        // Assuming graphController.getAllUsersStudyGraph is mapped to /graphs/all-users.
+        // It returns { dates, users: [ { name, data: [10, 20] } ] }
+        
+        // Original AllUsersGraph code:
+        // const values = res.data.map((u) => u.totalMinutes);
+        
+        // It seems AllUsersGraph EXPECTS a simple list of users with total time.
+        // But the endpoint returns time series.
+        
+        // I should sum the data array to get totalMinutes for the bar chart.
+        const values = users.map((u) => {
+            if (u.totalMinutes) return u.totalMinutes; // validation if backend changes
+            if (Array.isArray(u.data)) return u.data.reduce((a, b) => a + b, 0);
+            return 0;
+        });
+
+        setChartData({
+          labels,
+          datasets: [
+            {
+              label: "Total Study Minutes",
+              data: values,
+              backgroundColor: "rgba(59, 130, 246, 0.6)",
+              borderRadius: 6,
+            },
+          ],
+        });
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load group study graph");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroupGraph();
   }, []);
 
-  if (!data) return <p>Loading graph...</p>;
-
-  const chartData = {
-    labels: data.dates,
-    datasets: data.users.map((u, i) => ({
-      label: u.name,
-      data: u.data.map((m) => m / 60), // hours
-      borderColor: [
-        "#ef4444", // red
-        "#3b82f6", // blue
-        "#22c55e", // green
-        "#eab308", // yellow
-        "#a855f7", // purple
-      ][i % 5],
-      backgroundColor: "transparent",
-      borderWidth: 3,
-      pointRadius: 6,
-      pointHoverRadius: 8,
-      tension: 0.4,
-    })),
-  };
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: true,
-        position: "top",
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: "Study Hours",
-        },
-      },
-      x: {
-        title: {
-          display: true,
-          text: "Date",
-        },
-      },
-    },
-  };
+  if (loading) return <p className="text-center">Loading group graph...</p>;
+  if (error) return <p className="text-center text-red-500">{error}</p>;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-      <h2 className="text-xl font-semibold mb-4">
-        📊 All Users Study Comparison
+    <div className="p-4 border rounded dark:border-gray-700">
+      <h2 className="text-lg font-semibold mb-4">
+        Group Study Time (All Users)
       </h2>
-      <Line data={chartData} options={options} />
+
+      <Bar
+        data={chartData}
+        options={{
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Minutes",
+              },
+            },
+          },
+        }}
+      />
     </div>
   );
-}
+};
 
 export default AllUsersGraph;

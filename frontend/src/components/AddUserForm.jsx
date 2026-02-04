@@ -2,9 +2,6 @@ import { useState } from "react";
 import { createUser } from "../api/api";
 
 function AddUserForm({ onAdded }) {
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const submit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;

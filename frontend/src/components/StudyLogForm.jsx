@@ -1,24 +1,15 @@
-import { useEffect, useState } from "react";
-import { getUsers, saveStudyLog } from "../api/api";
+import { useState } from "react";
+import { saveStudyLog } from "../api/api";
 
 function StudyLogForm({ onSaved }) {
-  const [users, setUsers] = useState([]);
-  const [userId, setUserId] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [minutes, setMinutes] = useState("");
-
-  useEffect(() => {
-    getUsers().then((res) => {
-      setUsers(res.data);
-      if (res.data.length > 0) setUserId(res.data[0]._id);
-    });
-  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
-    await saveStudyLog({ userId, date, minutes: Number(minutes) });
+    await saveStudyLog({ date, minutes: Number(minutes) });
     setMinutes("");
-    onSaved();
+    if (onSaved) onSaved();
   };
 
   return (
@@ -26,18 +17,6 @@ function StudyLogForm({ onSaved }) {
       <h2 className="text-xl font-semibold mb-4">➕ Log Study Time</h2>
 
       <form className="grid gap-4" onSubmit={submit}>
-        <select
-          className="border rounded p-2 bg-white dark:bg-gray-700"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-        >
-          {users.map((u) => (
-            <option key={u._id} value={u._id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
-
         <input
           type="date"
           className="border rounded p-2 bg-white dark:bg-gray-700"
