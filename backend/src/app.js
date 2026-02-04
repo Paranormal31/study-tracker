@@ -11,6 +11,8 @@ const allowedOrigins = [
 ];
 const app = express();
 
+app.set("trust proxy", 1); // 👈 Required for Render/Heroku to trust the proxy and send secure cookies
+
 app.use(
   cors({
     origin: function (origin, callback) {
